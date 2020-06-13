@@ -130,30 +130,10 @@ fn main() {
     robot.painted.insert(Position { x: 0, y: 0 }, Color::White);
     robot.run();
 
-    let x_min = robot
-        .painted
-        .keys()
-        .min_by_key(|p| p.x)
-        .map(|p| p.x)
-        .unwrap();
-    let x_max = robot
-        .painted
-        .keys()
-        .max_by_key(|p| p.x)
-        .map(|p| p.x)
-        .unwrap();
-    let y_min = robot
-        .painted
-        .keys()
-        .min_by_key(|p| p.y)
-        .map(|p| p.y)
-        .unwrap();
-    let y_max = robot
-        .painted
-        .keys()
-        .max_by_key(|p| p.y)
-        .map(|p| p.y)
-        .unwrap();
+    let x_min = robot.painted.keys().map(|p| p.x).min().unwrap();
+    let x_max = robot.painted.keys().map(|p| p.x).max().unwrap();
+    let y_min = robot.painted.keys().map(|p| p.y).min().unwrap();
+    let y_max = robot.painted.keys().map(|p| p.y).max().unwrap();
 
     println!("Solution Part 2:");
     for y in (y_min..=y_max).rev() {

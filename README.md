@@ -1,2 +1,4 @@
-# rust_aoc19
-Solutions to Advent of Code 2019 in Rust
+# [Advent of Code 2019](https://adventofcode.com/) Solutions in Rust
+
+
+The results of my 2020 quarantine project of learning the Rust programming language
