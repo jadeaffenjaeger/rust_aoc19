@@ -1,7 +1,9 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs;
+use num_integer::Integer;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 struct Vec3 {
     x: i64,
     y: i64,
@@ -14,11 +16,15 @@ impl Vec3 {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+impl Eq for Vec3 {}
+
+#[derive(Debug, PartialEq, Clone, Hash)]
 struct Body {
     position: Vec3,
     velocity: Vec3,
 }
+
+impl Eq for Body {}
 
 impl Body {
     pub fn new(position: &str) -> Body {
@@ -87,7 +93,7 @@ impl Body {
 }
 
 fn update_bodies(bodies: &mut Vec<Body>) {
-    for i in 1..bodies.len()  {
+    for i in 1..bodies.len() {
         let (left, right) = bodies.split_at_mut(i);
         for b2 in left {
             right[0].interact(&b2);
@@ -113,14 +119,56 @@ fn main() {
     let contents = fs::read_to_string(filename).unwrap();
 
     let mut bodies: Vec<_> = contents.lines().map(|l| Body::new(l)).collect();
+    let mut bodies1 = bodies.clone();
+
+    let mut states_x: HashSet<Vec<(i64, i64)>> = HashSet::new();
+    let mut states_y: HashSet<Vec<(i64, i64)>> = HashSet::new();
+    let mut states_z: HashSet<Vec<(i64, i64)>> = HashSet::new();
 
     for _ in 0..1000 {
-        update_bodies(&mut bodies);
+        update_bodies(&mut bodies1);
     }
-    
-    let total_energy = bodies.iter().fold(0, |acc, b| acc + b.energy());
+
+    let total_energy = bodies1.iter().fold(0, |acc, b| acc + b.energy());
     println!("Solution Part 1: {:?}", total_energy);
-    // println!("Solution Part 2: {:?}", 0);
+
+    let mut i = 0;
+    let mut cycles: (u64, u64, u64) = (0, 0, 0);
+
+    loop {
+        update_bodies(&mut bodies);
+        if cycles.0 == 0 && !states_x.insert(
+            bodies
+                .iter()
+                .map(|b| (b.position.x, b.velocity.x))
+                .collect(),
+        ) {
+            cycles.0 = i;
+        }
+        if cycles.1 == 0 && !states_y.insert(
+            bodies
+                .iter()
+                .map(|b| (b.position.y, b.velocity.y))
+                .collect(),
+        ) {
+            cycles.1 = i;
+        }
+        if cycles.2 == 0 && !states_z.insert(
+            bodies
+                .iter()
+                .map(|b| (b.position.z, b.velocity.z))
+                .collect(),
+        ) {
+            cycles.2 = i;
+        }
+        if cycles.0 != 0 && cycles.1 != 0 && cycles.2 != 0 {
+            let mut ans = (cycles.0).lcm(&cycles.1);
+            ans = ans.lcm(&cycles.2);
+            println!("Solution Part 2: {:?}", ans);
+            break;
+        }
+        i+=1
+    }
 }
 
 #[cfg(test)]
