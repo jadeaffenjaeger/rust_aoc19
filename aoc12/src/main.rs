@@ -33,15 +33,7 @@ impl Body {
             .split(',')
             .collect();
 
-        let parse_coord = |coord: &str| {
-            coord
-                .split('=')
-                .skip(1)
-                .next()
-                .unwrap()
-                .parse::<i64>()
-                .unwrap()
-        };
+        let parse_coord = |coord: &str| coord.split('=').nth(1).unwrap().parse::<i64>().unwrap();
 
         Body {
             position: Vec3 {
@@ -117,21 +109,8 @@ fn main() {
     let filename = &args[1];
     let contents = fs::read_to_string(filename).unwrap();
 
-    let mut bodies: Vec<_> = contents.lines().map(|l| Body::new(l)).collect();
-    let mut bodies1 = bodies.clone();
-
-    let initial_x = bodies
-        .iter()
-        .map(|b| (b.position.x, b.velocity.x))
-        .collect();
-    let initial_y = bodies
-        .iter()
-        .map(|b| (b.position.y, b.velocity.y))
-        .collect();
-    let initial_z = bodies
-        .iter()
-        .map(|b| (b.position.z, b.velocity.z))
-        .collect();
+    let mut bodies1: Vec<_> = contents.lines().map(|l| Body::new(l)).collect();
+    let mut bodies2 = bodies1.clone();
 
     for _ in 0..1000 {
         update_bodies(&mut bodies1);
@@ -140,24 +119,22 @@ fn main() {
     let total_energy = bodies1.iter().fold(0, |acc, b| acc + b.energy());
     println!("Solution Part 1: {:?}", total_energy);
 
+    let get_axis = |bodies: &Vec<Body>, f: fn(&Body) -> (i64, i64)| bodies.iter().map(f).collect();
+    let get_x = |b: &Body| (b.position.x, b.velocity.x);
+    let get_y = |b: &Body| (b.position.y, b.velocity.y);
+    let get_z = |b: &Body| (b.position.z, b.velocity.z);
+
+    let initial_x = get_axis(&bodies2, get_x);
+    let initial_y = get_axis(&bodies2, get_y);
+    let initial_z = get_axis(&bodies2, get_z);
+
     let mut i = 0;
     let mut cycles: (u64, u64, u64) = (0, 0, 0);
 
     loop {
-
-        let current_x = bodies
-            .iter()
-            .map(|b| (b.position.x, b.velocity.x))
-            .collect();
-        let current_y = bodies
-            .iter()
-            .map(|b| (b.position.y, b.velocity.y))
-            .collect();
-        let current_z = bodies
-            .iter()
-            .map(|b| (b.position.z, b.velocity.z))
-            .collect();
-
+        let current_x = get_axis(&bodies2, get_x);
+        let current_y = get_axis(&bodies2, get_y);
+        let current_z = get_axis(&bodies2, get_z);
 
         let compare = |b1: &Vec<(i64, i64)>, b2: &Vec<(i64, i64)>| {
             b1.iter().zip(b2.iter()).all(|(a, b)| a == b)
@@ -173,13 +150,12 @@ fn main() {
             cycles.2 = i;
         }
         if cycles.0 != 0 && cycles.1 != 0 && cycles.2 != 0 {
-            let mut ans = (cycles.0).lcm(&cycles.1);
-            ans = ans.lcm(&cycles.2);
+            let ans = (cycles.0).lcm(&cycles.1).lcm(&cycles.2);
             println!("Solution Part 2: {:?}", ans);
             break;
         }
 
-        update_bodies(&mut bodies);
+        update_bodies(&mut bodies2);
         i += 1
     }
 }
