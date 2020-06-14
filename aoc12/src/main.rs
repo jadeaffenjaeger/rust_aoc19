@@ -1,7 +1,6 @@
-use std::collections::HashSet;
+use num_integer::Integer;
 use std::env;
 use std::fs;
-use num_integer::Integer;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 struct Vec3 {
@@ -121,9 +120,18 @@ fn main() {
     let mut bodies: Vec<_> = contents.lines().map(|l| Body::new(l)).collect();
     let mut bodies1 = bodies.clone();
 
-    let mut states_x: HashSet<Vec<(i64, i64)>> = HashSet::new();
-    let mut states_y: HashSet<Vec<(i64, i64)>> = HashSet::new();
-    let mut states_z: HashSet<Vec<(i64, i64)>> = HashSet::new();
+    let initial_x = bodies
+        .iter()
+        .map(|b| (b.position.x, b.velocity.x))
+        .collect();
+    let initial_y = bodies
+        .iter()
+        .map(|b| (b.position.y, b.velocity.y))
+        .collect();
+    let initial_z = bodies
+        .iter()
+        .map(|b| (b.position.z, b.velocity.z))
+        .collect();
 
     for _ in 0..1000 {
         update_bodies(&mut bodies1);
@@ -136,29 +144,32 @@ fn main() {
     let mut cycles: (u64, u64, u64) = (0, 0, 0);
 
     loop {
-        update_bodies(&mut bodies);
-        if cycles.0 == 0 && !states_x.insert(
-            bodies
-                .iter()
-                .map(|b| (b.position.x, b.velocity.x))
-                .collect(),
-        ) {
+
+        let current_x = bodies
+            .iter()
+            .map(|b| (b.position.x, b.velocity.x))
+            .collect();
+        let current_y = bodies
+            .iter()
+            .map(|b| (b.position.y, b.velocity.y))
+            .collect();
+        let current_z = bodies
+            .iter()
+            .map(|b| (b.position.z, b.velocity.z))
+            .collect();
+
+
+        let compare = |b1: &Vec<(i64, i64)>, b2: &Vec<(i64, i64)>| {
+            b1.iter().zip(b2.iter()).all(|(a, b)| a == b)
+        };
+
+        if cycles.0 == 0 && compare(&initial_x, &current_x) {
             cycles.0 = i;
         }
-        if cycles.1 == 0 && !states_y.insert(
-            bodies
-                .iter()
-                .map(|b| (b.position.y, b.velocity.y))
-                .collect(),
-        ) {
+        if cycles.1 == 0 && compare(&initial_y, &current_y) {
             cycles.1 = i;
         }
-        if cycles.2 == 0 && !states_z.insert(
-            bodies
-                .iter()
-                .map(|b| (b.position.z, b.velocity.z))
-                .collect(),
-        ) {
+        if cycles.2 == 0 && compare(&initial_z, &current_z) {
             cycles.2 = i;
         }
         if cycles.0 != 0 && cycles.1 != 0 && cycles.2 != 0 {
@@ -167,7 +178,9 @@ fn main() {
             println!("Solution Part 2: {:?}", ans);
             break;
         }
-        i+=1
+
+        update_bodies(&mut bodies);
+        i += 1
     }
 }
 
