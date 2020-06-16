@@ -119,11 +119,22 @@ fn main() {
     let total_energy = bodies1.iter().fold(0, |acc, b| acc + b.energy());
     println!("Solution Part 1: {:?}", total_energy);
 
+    // I got stuck on the second part, so I looked for some help on the internet.
+    // Two important bits of insight that I probably wouldn't have come up with myself:
+    //
+    // 1. The first reoccuring state will always be identical to the initial state (so the loop of states will always be ABCDABCD, never ABCDCDCDCD.
+    // This means that we only need to compare to the initial state, not every state encountered this far.
+    // This follows from the fact that the forward transformation function is inversible, so every state can only be reached from exactly one other state.
+    //
+    // 2. The transformations for x, y and z are independent. This means that each of these have individual cycles. The global cycle length will then be the LCM of the cycles for x, y and z individually.
+
+    // Split bodies up into their x,y and z positions and velocities
     let get_axis = |bodies: &Vec<Body>, f: fn(&Body) -> (i64, i64)| bodies.iter().map(f).collect();
     let get_x = |b: &Body| (b.position.x, b.velocity.x);
     let get_y = |b: &Body| (b.position.y, b.velocity.y);
     let get_z = |b: &Body| (b.position.z, b.velocity.z);
 
+    // Keep initial states per axis to see where if we have gone a full round
     let initial_x = get_axis(&bodies2, get_x);
     let initial_y = get_axis(&bodies2, get_y);
     let initial_z = get_axis(&bodies2, get_z);
@@ -136,10 +147,12 @@ fn main() {
         let current_y = get_axis(&bodies2, get_y);
         let current_z = get_axis(&bodies2, get_z);
 
+        // Compare initial state and current state per axis
         let compare = |b1: &Vec<(i64, i64)>, b2: &Vec<(i64, i64)>| {
             b1.iter().zip(b2.iter()).all(|(a, b)| a == b)
         };
 
+        // Check if we've done a full cycle per axis. If so, store cycle length
         if cycles.0 == 0 && compare(&initial_x, &current_x) {
             cycles.0 = i;
         }
@@ -149,6 +162,8 @@ fn main() {
         if cycles.2 == 0 && compare(&initial_z, &current_z) {
             cycles.2 = i;
         }
+
+        // All axes have gone at least one full cycle. Compute LCM from results
         if cycles.0 != 0 && cycles.1 != 0 && cycles.2 != 0 {
             let ans = (cycles.0).lcm(&cycles.1).lcm(&cycles.2);
             println!("Solution Part 2: {:?}", ans);
