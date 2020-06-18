@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 
 fn fuel_required_simple(mass: i32) -> i32 {
-    mass / 3 as i32 - 2
+    0.max((mass / 3) - 2)
 }
 
 fn fuel_required_complex(mass: i32) -> i32 {
@@ -19,10 +19,7 @@ fn main() {
     let filename = &args[1];
     let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
 
-    let masses: Vec<i32> = contents
-        .lines()
-        .map(|x| x.parse().unwrap())
-        .collect();
+    let masses: Vec<i32> = contents.lines().map(|x| x.parse().unwrap()).collect();
 
     let total_fuel_simple: i32 = masses
         .iter()
