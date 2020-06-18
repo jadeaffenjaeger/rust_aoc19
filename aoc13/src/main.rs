@@ -1,16 +1,11 @@
 use intcomputer::*;
+use display::*;
 
 use std::env;
 use std::fs;
 
 use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
-
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
-use sdl2::rect::Rect;
-use std::time::Duration;
 
 const WIDTH: usize = 44;
 const HEIGHT: usize = 20;
@@ -26,15 +21,17 @@ enum Tile {
     Ball = 4,
 }
 
-struct Arcade {
+struct Arcade<'a> {
     screen: [Tile; WIDTH * HEIGHT],
+    display: &'a mut Display,
     computer: IntComputer,
     score: u32,
 }
 
-impl Arcade {
-    pub fn new(program: Vec<i64>) -> Self {
+impl<'a> Arcade<'a> {
+    pub fn new(program: Vec<i64>, display: &'a mut Display) -> Self {
         Self {
+            display: display,
             screen: [Tile::Empty; WIDTH * HEIGHT],
             computer: IntComputer::new(program),
             score: 0,
@@ -77,6 +74,7 @@ impl Arcade {
             } else {
                 let tile = Tile::try_from(self.computer.output.pop_front().unwrap()).unwrap();
                 self.screen[(x as usize) + (y as usize) * WIDTH] = tile;
+                self.display.set_pixel(x as usize, y as usize, tile as u32);
             }
         }
     }
@@ -87,51 +85,27 @@ fn main() -> Result<(), String> {
     let filename = &args[1];
     let contents = fs::read_to_string(filename).unwrap();
 
+    let mut display= Display::new(WIDTH, HEIGHT, SCALE, "Aoc Day 13");
+
     let mut program: Vec<i64> = contents
         .trim()
         .split(',')
         .map(|x| x.parse().unwrap())
         .collect();
 
-    let mut arcade = Arcade::new(program.clone());
-    arcade.run();
-    arcade.consume_output();
-    let blocktiles = arcade.screen.iter().filter(|&&t| t == Tile::Block).count();
-    println!("Solution Part 1: {:?}", blocktiles);
+        let mut arcade = Arcade::new(program.clone(), &mut display);
+        arcade.run();
+        arcade.consume_output();
+        let blocktiles = arcade.screen.iter().filter(|&&t| t == Tile::Block).count();
+        println!("Solution Part 1: {:?}", blocktiles);
 
     program[0] = 2;
-    let mut arcade = Arcade::new(program);
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-    let window = video_subsystem
-        .window(
-            "Rust AoC 2019 Day 13",
-            (WIDTH * SCALE) as u32,
-            (HEIGHT * SCALE) as u32,
-        )
-        .position_centered()
-        .opengl()
-        .build()
-        .map_err(|e| e.to_string())?;
+    let mut arcade = Arcade::new(program, &mut display);
 
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-    let mut event_pump = sdl_context.event_pump()?;
-
-    'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => {}
-            }
-        }
-
+    loop {
         arcade.run();
-        if arcade.computer.state == ProgramState::Finished {
-            break 'running;
+        if arcade.computer.state == ProgramState::Finished || arcade.display.update() == false {
+            break;
         }
 
         // Control paddle movement according to ball position
@@ -155,25 +129,6 @@ fn main() -> Result<(), String> {
         if ball_x == paddle_x {
             arcade.neutral()
         }
-
-        canvas.set_draw_color(Color::RGB(10, 10, 10));
-        canvas.clear();
-
-        for (xy, tile) in arcade.screen.iter().enumerate() {
-            if *tile == Tile::Empty {
-                continue;
-            }
-
-            match *tile {
-                Tile::Empty => continue,
-                _ => canvas.set_draw_color(Color::RGB(20, 220, 20)),
-            }
-            let x = ((xy % WIDTH) * SCALE) as i32;
-            let y = ((xy / WIDTH) * SCALE) as i32;
-            let _ = canvas.fill_rect(Rect::new(x, y, SCALE as u32, SCALE as u32));
-        }
-        canvas.present();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
     // Update final score
