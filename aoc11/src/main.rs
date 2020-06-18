@@ -49,7 +49,7 @@ impl PaintingRobot {
                 ProgramState::Running => continue,
                 ProgramState::WaitingForInput => {
                     self.consume_output();
-                    self.computer.input.push_back(self.read_color() as i64);
+                    self.computer.input.push_back(self.read_color());
                 }
             }
         }
