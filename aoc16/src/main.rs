@@ -24,8 +24,8 @@ fn fft(input: &Vec<i32>) -> Vec<i32> {
         generate_pattern(input.len(), pos)
             .iter()
             .zip(input.iter())
-            .map(|(p, i)| p * i)
-            .fold(0, |acc, x| acc + x)
+            .filter(|(&p, _)| p != 0)
+            .fold(0, |acc, (&p, &i)| if p < 0 { acc - i } else { acc + i })
             .abs()
             % 10
     };
@@ -37,7 +37,7 @@ fn fft(input: &Vec<i32>) -> Vec<i32> {
 
 fn phases(input: &mut Vec<i32>, num: usize) {
     for _ in 0..num {
-        *input = fft(&input.clone());
+        *input = fft(&input);
     }
 }
 
@@ -49,17 +49,42 @@ fn num_to_vec(numstr: &str) -> Vec<i32> {
         .collect()
 }
 
+fn part_two(input: &Vec<i32>) -> Vec<i32> {
+    let cumsum_rev: Vec<i32> = input
+        .iter()
+        .rev()
+        .scan(0, |state, x| {
+            *state = (*state + x) % 10;
+            Some(*state)
+        })
+        .collect();
+    cumsum_rev.into_iter().rev().collect()
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let filename = &args[1];
     let contents = fs::read_to_string(filename).unwrap();
-    let mut num = num_to_vec(&contents);
+    let input = num_to_vec(&contents);
+
+    let mut num = input.clone();
     phases(&mut num, 100);
-    let out: String = num[0..8]
-        .iter()
-        .map(|&x| char::from_digit(x as u32, 10).unwrap())
-        .collect();
-    println!("Solution Part 1: {}", out);
+
+    let to_str = |num: Vec<i32>| -> String {
+        num[0..8]
+            .iter()
+            .map(|&x| char::from_digit(x as u32, 10).unwrap())
+            .collect()
+    };
+    println!("Solution Part 1: {}", to_str(num));
+
+    let offset = input[0..7].iter().fold(0, |acc, &x| acc * 10 + x) as usize;
+    let size = input.len() * 10000;
+    let mut num_large: Vec<_> = input.into_iter().cycle().take(size).skip(offset).collect();
+    for _ in 0..100 {
+        num_large = part_two(&num_large);
+    }
+    println!("Solution Part 2: {}", to_str(num_large));
 }
 
 #[cfg(test)]
@@ -82,5 +107,10 @@ mod tests {
         let mut num = num_to_vec(&"80871224585914546619083218645595");
         phases(&mut num, 100);
         assert_eq!(num[0..8], [2, 4, 1, 7, 6, 1, 7, 6]);
+    }
+    #[test]
+    fn test_part_two() {
+        let num = num_to_vec(&"54321");
+        assert_eq!(part_two(&num), [5, 0, 6, 3, 1]);
     }
 }
